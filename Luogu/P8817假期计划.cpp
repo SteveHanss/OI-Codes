@@ -1,4 +1,5 @@
 #include <iostream>
+#include <time.h>
 #include <cstring>
 #include <queue>
 
@@ -6,15 +7,13 @@ using namespace std;
 
 typedef long long LL;
 
-const int N = 2510, M = 1e4 + 10;
+const int N = 2510, M = 2e4 + 10;
 
 int n, m, k;
 int h[N], ne[M], e[M], idx;
 LL w[N];
-LL f[N][6]; //f(i, j) 表示的是从 1 开始，到 i，且已经经过了 j 个景点的最大值
-bool st[N];
+int f[N][4]; //f(i, j) 表示 i 可达的在家附近且第 j 大的点
 int dist[N][N];
-vector<int> act[N];
 
 void add(int a, int b)
 {
@@ -36,23 +35,27 @@ void bfs(int u)
             if (dist[u][j] == -1)
             {
                 dist[u][j] = dist[u][t] + 1;
-                act[u].push_back(j);
+                if (u != 1 && dist[1][j] <= k + 1 && dist[1][j] != -1)
+                {
+                    for (int i = 1; i <= 3; i ++ )
+                        if (w[j] > w[f[u][i]])
+                        {
+                            for (int k = 3; k >= i + 1; k -- ) 
+                                f[u][k] = f[u][k - 1];
+                            f[u][i] = j;
+                            break;
+                        }
+                }
                 q.push(j);
             }
         }
     }
 }
 
-LL dfs(int u, int cnt)
+bool check(int a, int b, int c, int d)
 {
-    if (cnt == 1) return f[u][1] = w[u];
-    if (f[u][cnt] != -1) return f[u][cnt];
-    for (int i = 0; i < act[u].size(); i ++ )
-    {
-        int j = act[u][i];
-        f[u][cnt] = max(f[u][cnt], dfs(j, cnt - 1) + w[u]);
-    }
-    return f[u][cnt];
+    if (a == b || b == c || c == d || a == c || b == d || a == d) return false;
+    return true;
 }
 
 int main()
@@ -60,7 +63,7 @@ int main()
     scanf("%d%d%d", &n, &m, &k);
 
     for (int i = 2; i <= n; i ++ )
-        scanf("%d", &w[i]);
+        scanf("%lld", &w[i]);
 
     for (int i = 1; i <= m; i ++ )
     {
@@ -69,14 +72,33 @@ int main()
         add(a, b), add(b, a);
     }
 
-    memset(f, -1, sizeof f);
     memset(dist, -1, sizeof dist);
     for (int i = 1; i <= n; i ++ )
         bfs(i);
 
-    dfs(1, 5);
+    LL ans = -1;
+    for (int i = 2; i <= n; i ++ )
+        for (int j = 2; j <= n; j ++ )
+            if (i != j && ~dist[i][j])
+            {
+                vector<int> tmp1, tmp2;
+                for (int k = 1; k <= 3; k ++ )
+                {
+                    if (f[i][k]) tmp1.push_back(f[i][k]);
+                    if (f[j][k]) tmp2.push_back(f[j][k]);
+                }
+                for (int ii = 0; ii < tmp1.size(); ii ++ )
+                    for (int jj = 0; jj < tmp2.size(); jj ++ )
+                    {
+                        int a = tmp1[ii], b = tmp2[jj];
+                        if (check(a, b, i, j))
+                            ans = max(ans, w[a] + w[b] + w[i] + w[j]);
+                    }
+            }
 
-    printf("%lld\n", f[1][5]);
+    printf("%lld\n", ans);
+
+    cerr << clock() << endl;
 
     return 0;
 }
